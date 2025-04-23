@@ -1,0 +1,107 @@
+version: '3.9'
+
+services:
+  db_general:
+    image: postgres:15
+    container_name: db_general
+    env_file:
+      - ./envs/.env.db_general
+    volumes:
+      - db_general_data:/var/lib/postgresql/data
+    networks:
+      - db_general_net
+
+  db_credentials:
+    image: postgres:15
+    container_name: db_credentials
+    env_file:
+      - ./envs/.env.db_credentials
+    volumes:
+      - db_credentials_data:/var/lib/postgresql/data
+    networks:
+      - db_credentials_net
+
+  backend:
+    build:
+      context: ./docker/back
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file:
+      - ./envs/.env.backend
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    volumes:
+      - ./jwt_keys:/app/keys:rw
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db_general
+      - db_credentials
+      - mqtt_broker
+    networks:
+      - db_general_net
+      - db_credentials_net
+      - mqtt_internal_net
+      - nginx_proxy_net
+
+  mqtt_broker:
+    build:
+      context: ./docker/mqtt
+      dockerfile: Dockerfile
+    image: emqx/emqx:latest
+    container_name: mqtt_broker
+    env_file:
+      - ./envs/.env.mqtt
+    volumes:
+      - ./docker/mqtt/emqx.conf:/opt/emqx/etc/emqx.conf:ro
+      - mqtt_data:/opt/emqx/data
+      - mqtt_log:/opt/emqx/log
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    networks:
+      - db_credentials_net
+      - mqtt_internal_net
+      - nginx_proxy_net
+
+  frontend:
+    build:
+      context: ./docker/front
+    container_name: frontend
+    env_file:
+      - ./envs/.env.frontend
+    ports:
+      - "3000:80"
+    networks:
+      - nginx_proxy_net
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./jwt_keys:/etc/nginx/jwt_keys:ro
+    ports:
+      - "80:80"
+    networks:
+      - nginx_proxy_net
+
+networks:
+  db_general_net:
+    internal: true
+  db_credentials_net:
+    internal: true
+  mqtt_internal_net:
+    internal: true
+  nginx_proxy_net:
+    driver: bridge
+
+volumes:
+  db_general_data:
+  db_credentials_data:
+  mqtt_data:
+  mqtt_log:
+  jwt_keys:

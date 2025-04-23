@@ -1,0 +1,36 @@
+# Ignorar archivos de entorno
+.env
+.env.*
+envs/
+
+# Ignorar volúmenes de Docker (archivos generados por Docker)
+db_general_data/
+db_credentials_data/
+mqtt_data/
+mqtt_log/
+
+# Ignorar claves y archivos sensibles
+jwt_keys/
+
+# Ignorar configuraciones específicas de Docker
+docker-compose.override.yml
+docker/back/Dockerfile
+docker/mqtt/Dockerfile
+docker/front/Dockerfile
+
+# Ignorar dependencias locales
+node_modules/
+venv/
+
+# Ignorar archivos temporales o de respaldo
+*.log
+*.bak
+*.swp
+
+# Ignorar archivos de configuración específicos
+nginx.conf
+
+# Ignorar archivos del sistema operativo o IDE
+.DS_Store
+.idea/
+.vscode/
